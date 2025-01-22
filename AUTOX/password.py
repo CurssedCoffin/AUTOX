@@ -20,7 +20,7 @@ def get_passwords():
     passwords = []
     if os.path.exists(password_txt_path):
         with open(password_txt_path, "r", encoding="utf-8") as f:
-            passwords.extend([line.strip() for line in f.readlines()])
+            passwords.extend([line.strip() for line in f.readlines() if line.strip() != ""])
 
     # create password json if not exists
     if not os.path.exists(password_json_path):

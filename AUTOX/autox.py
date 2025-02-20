@@ -42,8 +42,10 @@ def sort_root_by_name(root):
     paths_by_name = {}
 
     for path in paths:
-        name = os.path.splitext(os.path.basename(path))[0]
-        name = name.split(".")[0]
+        if os.path.getsize(path) <= 10 * 1024 * 1024: continue # skip small files like 10M
+        name = ".".join(os.path.splitext(os.path.basename(path))[:-1]) # normal is like a.zip
+        if len(name.split(".")) > 1 and "part" in name.split(".")[-1]: # in case of a.part1.rar
+            name = ".".join(name.split(".")[:-1])
         if name not in paths_by_name:
             paths_by_name[name] = []
         paths_by_name[name].append(path)
@@ -57,8 +59,9 @@ def sort_root_by_size(root, default_size = 1024 * 1024 * 100):
     paths_by_name = {}
 
     for path in paths:
-        name = os.path.splitext(os.path.basename(path))[0]
-        name = name.split(".")[0]
+        name = name = ".".join(os.path.splitext(os.path.basename(path))[:-1]) # normal is like a.zip
+        if len(name.split(".")) > 1 and "part" in name.split(".")[-1]: # in case of a.part1.rar
+            name = ".".join(name.split(".")[:-1])
         if name not in paths_by_name:
             paths_by_name[name] = []
         paths_by_name[name].append(path)

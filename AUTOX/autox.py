@@ -43,6 +43,7 @@ def sort_root_by_name(root):
 
     for path in paths:
         if os.path.getsize(path) <= 10 * 1024 * 1024: continue # skip small files like 10M
+        if path.endswith(".exe"): continue # skip large exe files
         name = ".".join(os.path.splitext(os.path.basename(path))[:-1]) # normal is like a.zip
         if len(name.split(".")) > 1 and "part" in name.split(".")[-1]: # in case of a.part1.rar
             name = ".".join(name.split(".")[:-1])
@@ -59,6 +60,7 @@ def sort_root_by_size(root, default_size = 1024 * 1024 * 100):
     paths_by_name = {}
 
     for path in paths:
+        if path.endswith(".exe"): continue # skip large exe files
         name = name = ".".join(os.path.splitext(os.path.basename(path))[:-1]) # normal is like a.zip
         if len(name.split(".")) > 1 and "part" in name.split(".")[-1]: # in case of a.part1.rar
             name = ".".join(name.split(".")[:-1])

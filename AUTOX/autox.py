@@ -119,49 +119,71 @@ def run_extract(basename, subpaths, del_after_extract = False, verbose = True):
     if verbose: logger.info(f"Extracting {path} to {dst_root}")
 
     # run the extraction
-    is_password_invalid = False # for the case that all password are invalid
     for password in passwords:
-        if password == "": # without password
-            command = [BIN_PATH, 'x', '-aoa', f'-o{dst_root}', f'--', f'{path}']
-        else: # with password
-            command = [BIN_PATH, 'x', '-aoa', f'-o{dst_root}', f'-p{password}', f'--', f'{path}']
-        res = None
-        code = None
-        success = False
-        output = False
+        command = [BIN_PATH, 'x', '-bsp1', '-aoa', f'-o{dst_root}'] # bsp1: bsp to 1 to switch to view the progress | aoa: Overwrite All existing files without prompt.
+        if password: # if with password
+            command += [f'-p{password}']
+        command += [f'--', f'{path}']
+        
+        process = None
+        code = None # program return code
+        success = False # break this for
+        output = False # control stdout to print
+        is_password_invalid = False # for the case that password is invalid,, kill process
         # if verbose: logger.warning(" ".join(command))
 
+        ex_task = bar.add_task("Extract")
+        last_progress = 0
+        able_to_progress = False
         try:
             pipe = tempfile.SpooledTemporaryFile()
-            res = subprocess.Popen(command, stdout=pipe, stderr=pipe, shell=True, cwd=os.path.dirname(path))
+            process = subprocess.Popen(command, stdout=pipe, stderr=pipe, shell=False, cwd=os.path.dirname(path))
             
             where = 0
-            while res.poll() is None:
+            while process.poll() is None:
                 pipe.seek(where)
                 lines = pipe.readlines()
-                where_offset = len(b"\n".join(lines))
+                cat_lines = b"\n".join(lines)
+                where_offset = len(cat_lines)
                 where += where_offset
                 if output:
                     for line in lines:
                         try: line = line.decode("utf-8").strip()
                         except: pass
                         finally: print(line)
-                if b"Enter password" in b"\n".join(lines):
+                
+                # wrong password, break
+                if b"Enter password" in cat_lines or b"Wrong password" in cat_lines:
                     is_password_invalid = True
                     break
+
+                # update progress
+                try:
+                    if b"Path =" in cat_lines: able_to_progress = True
+                    if b"%" in cat_lines and able_to_progress:
+                        percent = int(cat_lines.split(b"%")[-2].split(b"\n")[-1].strip().decode())
+                        if percent: bar.advance(ex_task, percent - last_progress)
+                        last_progress = percent
+                except:
+                    pass
             
             if is_password_invalid:
                 code = -2
-                res.kill()
+                process.kill()
 
         except Exception:
             if verbose: logger.error(f"\nCommand execution failed: {command}\nError message: \n{traceback.format_exc()}")
         finally:
-            if res is not None and code is None:
-                code = res.returncode
+            if process is not None and code is None:
+                code = process.returncode
                 if code in [0, 1]: success = True
             else:
                 code = -1 if code is None else code
+            
+            while process.poll() is None:
+                process.kill()
+        
+        bar.remove_task(ex_task)
 
         if success:
             if del_after_extract:

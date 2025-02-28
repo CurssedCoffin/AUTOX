@@ -108,7 +108,7 @@ def collect_zipfiles(subpaths):
         os.makedirs(os.path.dirname(dst_path), exist_ok=True)
         os.rename(path, dst_path)
 
-def run_extract(basename, subpaths, del_after_extract = False, verbose = True):
+def run_extract(basename, subpaths, del_after_extract = False, move_after_extract = True, verbose = True):
     """
     Do the extraction
     """
@@ -190,7 +190,8 @@ def run_extract(basename, subpaths, del_after_extract = False, verbose = True):
                 for path in subpaths:
                     os.remove(path)
             else:
-                collect_zipfiles(subpaths)
+                if move_after_extract:
+                    collect_zipfiles(subpaths)
             dst_root = collect_files(dst_root, basename=os.path.splitext(os.path.basename(path))[0])
 
             passwords[password] += 1
@@ -236,7 +237,7 @@ def run(root):
             status, dst_root = run_extract(basename, subpaths)
             if status:
                 for basename, subpaths in sort_root_by_size(dst_root).items():
-                    run_extract(basename, subpaths, del_after_extract=True, verbose=False)
+                    run_extract(basename, subpaths, del_after_extract=False, move_after_extract = False, verbose=False)
         except Exception as e:
             logger.error(f"Extraction failed with error: {e}")
 

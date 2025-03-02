@@ -34,34 +34,17 @@ bar.start()
 # load password
 passwords = get_passwords()
 
-def sort_root_by_name(root):
+def sort_root_by_name(root, default_size = 1024 * 1024 * 100):
     """
-    Get all files in the root directory and sort them by name
+    Get all files in the root directory and sort them by name, default is 100M
     """
     paths = [x for x in glob(os.path.join(root, "*")) if os.path.isfile(x)]
     paths_by_name = {}
 
     for path in paths:
-        if os.path.getsize(path) <= 10 * 1024 * 1024: continue # skip small files like 10M
+        if os.path.getsize(path) <= default_size: continue # skip small files less than default_size
         if path.endswith(".exe"): continue # skip large exe files
         name = ".".join(os.path.splitext(os.path.basename(path))[:-1]) # normal is like a.zip
-        if len(name.split(".")) > 1 and "part" in name.split(".")[-1]: # in case of a.part1.rar
-            name = ".".join(name.split(".")[:-1])
-        if name not in paths_by_name:
-            paths_by_name[name] = []
-        paths_by_name[name].append(path)
-    return paths_by_name
-
-def sort_root_by_size(root, default_size = 1024 * 1024 * 100):
-    """
-    Get paths that larger than default_size, default is 100M
-    """
-    paths = [x for x in glob(os.path.join(root, "*")) if os.path.isfile(x) and os.path.getsize(x) >= default_size]
-    paths_by_name = {}
-
-    for path in paths:
-        if path.endswith(".exe"): continue # skip large exe files
-        name = name = ".".join(os.path.splitext(os.path.basename(path))[:-1]) # normal is like a.zip
         if len(name.split(".")) > 1 and "part" in name.split(".")[-1]: # in case of a.part1.rar
             name = ".".join(name.split(".")[:-1])
         if name not in paths_by_name:
@@ -192,7 +175,7 @@ def run_extract(basename, subpaths, del_after_extract = False, move_after_extrac
             else:
                 if move_after_extract:
                     collect_zipfiles(subpaths)
-            dst_root = collect_files(dst_root, basename=os.path.splitext(os.path.basename(path))[0])
+            dst_root = collect_files(dst_root, basename=basename)
 
             passwords[password] += 1
             save_passwords(passwords)
@@ -236,7 +219,7 @@ def run(root):
         try:
             status, dst_root = run_extract(basename, subpaths)
             if status:
-                for basename, subpaths in sort_root_by_size(dst_root).items():
+                for basename, subpaths in sort_root_by_name(dst_root).items():
                     run_extract(basename, subpaths, del_after_extract=False, move_after_extract = False, verbose=False)
         except Exception as e:
             logger.error(f"Extraction failed with error: {e}")

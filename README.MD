@@ -48,3 +48,15 @@ autox_empty_pass
 ## 3. run autox.py
 
 Right click on plain area of a folder, and select "AUTOX" to extract all files in the folder.
+
+## 4. announcement
+
+The binary files under
+```
+AUTOS/bin/windows/
+    7z.dll
+    7z.exe
+```
+
+are copies from [7-zip source webpage](https://www.7-zip.org/download.html) official installer ```64-bit Windows x64``` after installing. Current version is ```7-Zip 24.09 (2024-11-29)```.
+

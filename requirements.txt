@@ -1,3 +1,4 @@
 loguru
 natsort
 rich
+pyinstaller

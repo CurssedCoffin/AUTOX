@@ -1,62 +1,59 @@
-# AUTOX
+# AUTOX - 批量解压
 
-## 1. install dependencies
+一个简单的批量解压工具，可以管理密码库并集成到Windows右键菜单，实现一键批量解压。
 
-Normal installation with python already installed:
+## 1. 主要功能
+
+* **批量解压**：使用7z批量解压目录下的压缩文件。
+* **密码库**：可以在程序中配置密码并明文存储在```password.json```文件中，解压时会自动尝试。
+* **右键菜单集成**：在程序中安装右键菜单后，可以右击文件夹空白处，快速对当前目录下的压缩包进行解压。
+
+## 2. 如何使用
+
+**直接打开**
+
+- 直接打开程序为配置模式，可以进行右键菜单 安装/卸载 和密码管理。
+
+![主界面](images/console.jpg)
+
+**通过右键菜单打开或将文件夹拖入程序**
+
+- 程序将自动开始解压当前文件夹里的所有压缩包。
+
+- 解压后的压缩包不会被删除，而是被移动到目录下的 ```_done```文件夹下。
+
+- 如果解压后的结果里首级目录也存在压缩包，则会尝试解压，该子目录压缩包不会被移动或删除。该过程仅进行一次，不会递归调用。
+
+![主界面](images/context_menu.jpg) ![主界面](images/decompress_progress.jpg) ![主界面](images/decompress_result.jpg)
+
+## 3. 编译为EXE
+
+1. 克隆本项目
 ```bash
-pip install git+https://github.com/CurssedCoffin/AUTOX
-autox_setup # initialize the setup
-# add a password, like autox_add_pass "123456" to add "123456" to the password file
+git clone https://github.com/CurssedCoffin/AUTOX
 ```
 
-Or quick install with uv virtual environment:
-
-First, install uv, check [uv github repo](https://github.com/astral-sh/uv?tab=readme-ov-file#installation)
+2. 安装依赖
 ```bash
-uv venv autox --python 3.10 # create a virtual environment with python 3.10 at current directory
-autox\Scripts\activate # activate the virtual environment
-uv pip install git+https://github.com/CurssedCoffin/AUTOX # install the package with uv
-autox_setup
-# add a password, like autox_add_pass "123456" to add "123456" to the password file
+pip install -r requirements.txt
 ```
 
-## 2. command line
-If installed with uv virtual environment, must activate the virtual environment first:
+3. 编译并将bin文件下的7z捆绑到程序中
 ```bash
-autox\Scripts\activate
+pyinstaller -F --add-data "bin;bin" autox.py
 ```
 
-```bash
-# This will add a "AUTOX" option to the context menu of the folder.
-# It tries to add AUTOX key to the registry ```HKEY_CURRENT_USER\Software\Classes\directory\Background\shell```.
-autox_setup 
+4. 编译好的程序在项目目录下 ```dist/autox.exe```
 
-# show password file path
-# Content: one line one password
-autox_show_pass_path 
+## 4. 声明
 
-# show password
-autox_show_pass 
-
-# add a password, like 123456
-autox_add_pass "123456"
-
-# empty password file
-autox_empty_pass 
+项目 ```bin/windows``` 目录下的二进制文件：
 ```
-
-## 3. run autox.py
-
-Right click on plain area of a folder, and select "AUTOX" to extract all files in the folder.
-
-## 4. announcement
-
-The binary files under
-```
-AUTOS/bin/windows/
+bin/windows/
     7z.dll
     7z.exe
 ```
 
-are copies from [7-zip source webpage](https://www.7-zip.org/download.html) official installer ```64-bit Windows x64``` after installing. Current version is ```7-Zip 24.09 (2024-11-29)```.
+是从 [7-zip 官方下载页面](https://www.7-zip.org/download.html) 的 64-bit Windows x64 版本安装程序中提取的。
 
+版本为 7-Zip 24.09 (2024-11-29)。

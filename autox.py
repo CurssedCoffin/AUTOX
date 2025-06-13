@@ -24,7 +24,7 @@ class AutoX:
         if sys.platform == "win32":
             self.bin_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "bin", "windows", "7z.exe")
         else:
-            logger.critical(f"Platform {sys.platform} not supported")
+            logger.critical(f"不支持的操作系统平台: {sys.platform}")
             sys.exit(1)
 
         self.bar = rich.progress.Progress(
@@ -36,14 +36,14 @@ class AutoX:
         self.bar.start()
 
         self.return_code_status = {
-            -2: "Password is invalid",
-            -1: "Unknown error with subprocess",
-            0: "No error",
-            1: "Warning (Non fatal error(s)). For example, one or more files were locked by some other application, so they were not compressed.",
-            2: "Fatal error",
-            7: "Command line error",
-            8: "Not enough memory for operation",
-            255: "User stopped the process",
+            -2: "密码错误",
+            -1: "子进程未知错误",
+            0: "无错误",
+            1: "警告 (非致命错误)。例如，一个或多个文件被其他应用程序锁定，因此未被压缩。",
+            2: "致命错误",
+            7: "命令行错误",
+            8: "内存不足",
+            255: "用户已停止该过程",
         }
         self.is_code_success = lambda code: code in [0, 1]
 
@@ -88,7 +88,7 @@ class AutoX:
 
     # 7z子进程解压压缩包
     def extract_zipfile(self, task, zipfile_path, dst_root, password = None):
-        if VERBOSE: logger.info(f"Extracting {zipfile_path} to {dst_root}")
+        if VERBOSE: logger.info(f"正在解压 {zipfile_path} 到 {dst_root}")
 
         # 7z 命令
         command = [self.bin_path, 'x', '-bsp1', '-aoa', f'-o{dst_root}'] # bsp1: bsp to 1 to switch to view the progress | aoa: Overwrite All existing files without prompt.
@@ -151,7 +151,7 @@ class AutoX:
         
         # 未知错误
         except Exception:
-            if VERBOSE: logger.error(f"\nCommand execution failed: {command}\nError message: \n{traceback.format_exc()}")
+            if VERBOSE: logger.error(f"\n命令执行失败: {command}\n错误信息: \n{traceback.format_exc()}")
         
         # 清理回收
         finally:
@@ -187,7 +187,7 @@ class AutoX:
 
     # 解压压缩包的逻辑, 包括密码尝试、解压、移动压缩包、清理路径、尝试移动单文件结果
     def run_extract(self, name, paths, zipfile_path, dst_root, move_root, sub_path):
-        task = self.bar.add_task("Extract")
+        task = self.bar.add_task("解压中")
         success = False
 
         # 尝试密码
@@ -217,9 +217,9 @@ class AutoX:
             else:
                 if VERBOSE:
                     if code in self.return_code_status:
-                        logger.error(f"Extraction {name} failed with password {password}: {self.return_code_status[code]}")
+                        logger.error(f"使用密码 {password} 解压 {name} 失败: {self.return_code_status[code]}")
                     else:
-                        logger.error(f"Extraction {name} failed with password {password}: unknown error with code {code}.")
+                        logger.error(f"使用密码 {password} 解压 {name} 失败: 未知错误，代码 {code}。")
                 shutil.rmtree(dst_root, ignore_errors=False)
         
         # 回收进度条
@@ -233,7 +233,7 @@ class AutoX:
         """sub_path: 如果调用方来自run_extract, 则会带上该参数，防止递归解压"""
         
         num = 0
-        for name, paths in self.bar.track(paths_by_name.items(), description="Total", total=len(paths_by_name)) if not sub_path else paths_by_name.items():
+        for name, paths in self.bar.track(paths_by_name.items(), description="总进度", total=len(paths_by_name)) if not sub_path else paths_by_name.items():
             zipfile_path = paths[0]
             dst_root = os.path.join(self.root if not sub_path else sub_path, name)
             move_root = os.path.join(self.root if not sub_path else sub_path, "_done")
@@ -244,7 +244,7 @@ class AutoX:
                 num += len(paths)
         
         if sub_path is None:
-            msg = f"Extracted {num}/{len(paths_by_name)} files"
+            msg = f"已解压 {num}/{len(paths_by_name)} 个文件"
             if num == len(paths_by_name):
                 logger.success(msg)
             elif num == 0:
@@ -260,7 +260,7 @@ def run_console():
     ConsoleManager()
 
 if __name__ == "__main__":
-    atexit.register(lambda: input("Press Enter to exit..."))
+    atexit.register(lambda: input("按回车键退出..."))
     args = sys.argv[1:]
 
     try:

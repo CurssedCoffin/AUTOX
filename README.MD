@@ -2,6 +2,8 @@
 
 一个简单的批量解压工具，可以管理密码库并集成到Windows右键菜单，实现一键批量解压。
 
+下载地址: [Release](https://github.com/CurssedCoffin/AUTOX/releases)
+
 ## 1. 主要功能
 
 * **批量解压**：使用7z批量解压目录下的压缩文件。

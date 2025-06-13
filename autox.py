@@ -197,7 +197,8 @@ class AutoX:
             # 成功解压
             if self.is_code_success(code):
                 self.bar.remove_task(task)
-                PasswordManager().update_password(password, 1)
+                if password is not None:
+                    PasswordManager().update_password(password, 1)
 
                 # 移动压缩包到缓存目录
                 self.move_zipfile(paths, move_root, keep = bool(sub_path)) # 如果是递归一次解压，则不进行移动，保留原来的压缩包，防止误删
@@ -244,8 +245,9 @@ class AutoX:
                 num += len(paths)
         
         if sub_path is None:
-            msg = f"已解压 {num}/{len(paths_by_name)} 个文件"
-            if num == len(paths_by_name):
+            num_all = sum(len(v) for v in paths_by_name.values())
+            msg = f"已解压 {num}/{num_all} 个文件"
+            if num == num_all:
                 logger.success(msg)
             elif num == 0:
                 logger.error(msg)

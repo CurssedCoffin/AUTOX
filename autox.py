@@ -47,22 +47,37 @@ class AutoX:
         }
         self.is_code_success = lambda code: code in [0, 1]
 
+        self.white_list = self.get_suffix_white_list()
         paths_by_name = self.determine_zipfile(self.root)
         self.run(paths_by_name)
     
+    # 获取压缩包后缀白名单
+    def get_suffix_white_list(self):
+        white_list = [
+            ".zip",
+            ".7z",
+            ".rar", # rar分卷压缩已为 *.part*.rar, 无需特殊处理
+            ".iso",
+            ".tar",
+            ".gz",
+            ".tgz",
+        ]
+
+        # zip分卷压缩 z01, z02, z120, ...; 7z分卷压缩 7z.001, 7z.002, ...
+        for i in range(1, 100): # 硬编码100次，应该不会出现这种情况
+            white_list.append(f'.{i:03d}') # .001, .002, ...
+            white_list.append(f'.z{i:02d}' if i < 100 else f'.z{i:03d}') # .z01, .z02, .z120, ...
+        
+        return white_list
+
     # 获取压缩、分卷压缩的逻辑
     def determine_zipfile(self, root):
-        black_lists = [
-            ".exe",
-            ".dll",
-            ".lib",
-        ]
         paths_by_name = {} # {basename: [path, ...], ...}
 
         paths = natsorted([x for x in glob(os.path.join(root, "*")) if os.path.isfile(x)])
         for path in paths:
-            # 跳过黑名单
-            if any(path.endswith(ext) for ext in black_lists):
+            # 只处理白名单内的后缀
+            if not any(path.endswith(ext) for ext in self.white_list):
                 continue
             
             # 跳过小文件
@@ -169,21 +184,41 @@ class AutoX:
 
         return code
 
+    # 移动压缩包时，如果目标目录已存在同名压缩包，则寻找新文件名
+    def find_new_name(self, path, dst_root):
+        name, ext = os.path.splitext(os.path.basename(path))
+        for i in range(1, 1000): # 硬编码1000次，应该不会出现这种情况
+            new_path = os.path.join(os.path.dirname(path), f"{name}_{i}{ext}")
+            if not os.path.exists(os.path.join(dst_root, os.path.basename(new_path))):
+                return new_path
+
     # 移动解压成功的压缩包到指定目录，或不移动
     def move_zipfile(self, paths, dst_root, keep = False):
         os.makedirs(dst_root, exist_ok=True)
         for path in paths:
             if not keep:
-                shutil.move(path, dst_root)
+                if os.path.exists(os.path.join(dst_root, os.path.basename(path))): # 如果目标目录已存在同名压缩包
+                    new_path = self.find_new_name(path, dst_root)
+                    
+                    logger.warning(f"目标目录 {dst_root} 已存在同名压缩包 {os.path.basename(path)}，将使用新文件名 {os.path.basename(new_path)}")
+                    os.rename(path, new_path)
+                    shutil.move(new_path, dst_root)
+                else: # 正常移动
+                    shutil.move(path, dst_root)
 
     # 当存在嵌套路径时，将嵌套路径移动到上一层
     def clean_dst_root(self, dst_root):
-        sub_paths = natsorted(glob(os.path.join(dst_root, "*")))
-        if len(sub_paths) == 1 and os.path.isdir(sub_paths[0]):
+        sub_paths = natsorted([os.path.join(dst_root, x) for x in os.listdir(dst_root) if os.path.isdir(os.path.join(dst_root, x))]) # glob函数可能遍历不到内容的bug，替换为os.listdir
+        if len(sub_paths) == 1:
             sub_path = sub_paths[0]
+
             shutil.move(sub_path, dst_root + "_temp")
             shutil.rmtree(dst_root)
-            os.rename(dst_root + "_temp", dst_root)
+            if os.path.basename(dst_root) == os.path.basename(sub_path): # 两个目录名相同，只存在嵌套关系，则直接移动
+                os.rename(dst_root + "_temp", dst_root)
+            else: # 两个目录名不同，移动前保留原始目录名，防止排序和对应问题
+                os.rename(dst_root + "_temp", os.path.join(os.path.dirname(dst_root), os.path.basename(dst_root) + "__" + os.path.basename(sub_path)))
+
 
     # 解压压缩包的逻辑, 包括密码尝试、解压、移动压缩包、清理路径、尝试移动单文件结果
     def run_extract(self, name, paths, zipfile_path, dst_root, move_root, sub_path):
@@ -221,7 +256,9 @@ class AutoX:
                         logger.error(f"使用密码 {password} 解压 {name} 失败: {self.return_code_status[code]}")
                     else:
                         logger.error(f"使用密码 {password} 解压 {name} 失败: 未知错误，代码 {code}。")
-                shutil.rmtree(dst_root, ignore_errors=False)
+                
+                if os.path.exists(dst_root): # 存在解压文件误判的情况，这种文件无法被解压，也无法生成新目录
+                    shutil.rmtree(dst_root, ignore_errors=False)
         
         # 回收进度条
         if not success:
@@ -234,6 +271,7 @@ class AutoX:
         """sub_path: 如果调用方来自run_extract, 则会带上该参数，防止递归解压"""
         
         num = 0
+        num_group = 0
         for name, paths in self.bar.track(paths_by_name.items(), description="总进度", total=len(paths_by_name)) if not sub_path else paths_by_name.items():
             zipfile_path = paths[0]
             dst_root = os.path.join(self.root if not sub_path else sub_path, name)
@@ -243,10 +281,11 @@ class AutoX:
             success = self.run_extract(name, paths, zipfile_path, dst_root, move_root, sub_path)
             if success:
                 num += len(paths)
+                num_group += 1
         
         if sub_path is None:
             num_all = sum(len(v) for v in paths_by_name.values())
-            msg = f"已解压 {num}/{num_all} 个文件"
+            msg = f"已解压 {num}/{num_all} 个文件, 共 {num_group}/{len(paths_by_name)} 组"
             if num == num_all:
                 logger.success(msg)
             elif num == 0:

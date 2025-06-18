@@ -10,6 +10,10 @@ on:
     tags:
       - 'v*' # 匹配 'v' 开头的 tag，例如 v1.0, v2.0.1
 
+# 设置权限
+permissions:
+  contents: write
+
 # 定义一个或多个 "作业" (jobs)
 jobs:
   build-and-release:

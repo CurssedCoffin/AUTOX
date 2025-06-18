@@ -1,0 +1,66 @@
+# .github/workflows/release-builder.yml
+
+# 工作流的名称，会显示在 GitHub Actions 页面
+name: Build and Release Executable
+
+# 触发工作流的事件
+on:
+  push:
+    # 只有当一个新 tag (例如 v1.0, v1.2.3) 被推送到仓库时，才运行此工作流
+    tags:
+      - 'v*' # 匹配 'v' 开头的 tag，例如 v1.0, v2.0.1
+
+# 定义一个或多个 "作业" (jobs)
+jobs:
+  build-and-release:
+    # 作业的名称
+    name: Build and Create Release
+    
+    # 运行此作业所需的虚拟机环境。因为要构建 .exe 文件，所以必须使用 Windows
+    runs-on: windows-latest
+
+    # 作业的步骤
+    steps:
+      # 第一步：检出代码
+      # 这个操作会把你的仓库代码下载到虚拟机中
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 第二步：设置 Python 环境
+      # 使用官方的 setup-python action 来安装指定版本的 Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' # 你可以根据需要更改 Python 版本
+
+      # 第三步：安装依赖
+      # 首先升级 pip，然后安装 pyinstaller 和 requirements.txt 中的包
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      # 第四步：使用 PyInstaller 构建 EXE 文件
+      # 运行你提供的构建命令
+      - name: Build with PyInstaller
+        run: pyinstaller -F --add-data "bin;bin" autox.py
+
+      # 第五步：创建 Release 并上传构建好的文件
+      # 使用一个非常流行的 action 来简化 Release 的创建和文件上传
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          # 要上传的文件路径。
+          # 'dist/autox.exe' 是 PyInstaller 构建后的默认输出路径
+          files: dist/autox.exe
+          
+          # Release 的标题，这里使用 tag 的名字作为标题
+          name: Release ${{ github.ref_name }}
+          
+          # Release 的描述，可以留空或添加一些内容
+          body: |
+            Automated release for version ${{ github.ref_name }}.
+            
+          # 如果为 true，则会创建一个 "预发布" 版本
+          prerelease: false

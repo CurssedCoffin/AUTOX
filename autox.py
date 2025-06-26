@@ -86,7 +86,7 @@ class AutoX:
             
             filename = os.path.basename(path)
             parts = filename.rsplit('.', 2) # 兼容分卷压缩文件
-            if len(parts) > 1 and (parts[-1].isdigit() or parts[-2].endswith('part')):
+            if len(parts) > 1 and (parts[-1].isdigit() or parts[-2].endswith('part') or parts[-2].startswith('part')):
                 basename = parts[0]
             else:
                 basename, _ = os.path.splitext(filename)

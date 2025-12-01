@@ -61,6 +61,7 @@ class AutoX:
             ".tar",
             ".gz",
             ".tgz",
+            ".tar.zst"
         ]
 
         # zip分卷压缩 z01, z02, z120, ...; 7z分卷压缩 7z.001, 7z.002, ...

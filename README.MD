@@ -56,6 +56,6 @@ bin/windows/
     7z.exe
 ```
 
-是从 [7-zip 官方下载页面](https://www.7-zip.org/download.html) 的 64-bit Windows x64 版本安装程序中提取的。
+是从 [7-Zip-zstd](https://github.com/mcmilk/7-Zip-zstd) 的 7z25.01-zstd-x64.exe 版本安装程序中提取的。
 
-版本为 7-Zip 24.09 (2024-11-29)。
+Tag为 [7-Zip ZS 25.01 - v1.5.7 - Release 1](https://github.com/mcmilk/7-Zip-zstd/releases/tag/v25.01-v1.5.7-R1)。
